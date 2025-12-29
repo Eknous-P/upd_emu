@@ -1,1 +1,1 @@
-very wip upd177x series emulator
+very wip µPD177x series emulator
