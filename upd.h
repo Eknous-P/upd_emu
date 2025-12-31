@@ -11,8 +11,14 @@ extern "C" {
 
 // types
 
-typedef uint8_t data_word;
-typedef uint16_t prg_word;
+// eh i dont need stdbool
+#ifndef bool
+typedef uint8_t bool;
+enum boolStates {
+  false=0,
+  true=1
+};
+#endif
 
 typedef enum _uPD_Variants {
   uPD1771C,
@@ -39,21 +45,25 @@ typedef enum _uPD_Vectors : uint16_t {
 typedef struct _uPD177x {
   // EMULATOR STATE
   uPD_Variants variant;
+  bool inInterrupt;
 
   // RAM AND ROM
   /* ram
-   * union of 2(3) arrays
+   * union of 2 objects
    * first one being the full 64 bytes
-   * the second one split into 2, as the top 32 bytes are registers
+   * the second one split into more arrays
+   * the top 32 bytes are registers, then 8 words of stack
    */
   union {
-    data_word rawMem[64];
+    uint8_t rawMem[64];
 
-    data_word Rr[32];
-    data_word therest[32];
+    struct {
+      uint8_t  Rr[32];
+      uint16_t stack[8];
+    } memRegs;
   } dataMem;
   // rom
-  prg_word  *prgMem;
+  uint16_t  *prgMem;
 
   // REGISTERS
   // program counter
@@ -81,9 +91,14 @@ typedef struct _uPD177x {
   // ??
   uint8_t skip, skip_;
 
+  // ???
+  uint8_t N;
+
 } uPD177x;
 
-// functions
+void triggerInterrupt(uPD177x* chip, uPD_Vectors vector);
+
+// external functions
 
 #define UPD_FUNC(n) uPD177x_##n (uPD177x* chip)
 #define UPD_FUNC_A(n, ...) uPD177x_##n (uPD177x* chip, __VA_ARGS__)

@@ -1,6 +1,14 @@
 #include "upd.h"
 #include <stdio.h>
 
+void triggerInterrupt(uPD177x* chip, uPD_Vectors vector) {
+  if (!chip->inInterrupt) {
+    chip->dataMem.memRegs.stack[chip->SP++]=chip->PC;
+    chip->PC=chip->prgMem[vector];
+    chip->inInterrupt=true;
+  }
+}
+
 void UPD_FUNC_A(Initialize, uPD_Variants variant, uint16_t* program) {
   chip->variant=variant;
   chip->prgMem=program;
@@ -28,6 +36,8 @@ void UPD_FUNC(Reset) {
 }
 
 void UPD_FUNC(Tick) {
+  // check for interrupts
+
   // advance PC
   uint16_t inst=chip->prgMem[chip->PC++];
   // MSB 0
@@ -50,7 +60,7 @@ void UPD_FUNC(Tick) {
       // ???
       break;
     case 0x0201: // MOV N, A
-      // TODO: N??
+      chip->N=chip->A;
       break;
     case 0x0208: // MOV X, A
       chip->X=chip->A;
@@ -87,21 +97,34 @@ void UPD_FUNC(Tick) {
       // ???
       break;
     case 0x0800: // RET
-      // TODO
+      chip->PC=chip->dataMem.memRegs.stack[chip->SP--];
       break;
     case 0x0801: // RETS
-      // TODO
+      chip->PC=chip->dataMem.memRegs.stack[chip->SP--]+1; // really?
       break;
     case 0x090f: // RETI
-      // TODO
-       break;
-    default: break;
+      chip->PC=chip->dataMem.memRegs.stack[chip->SP--]; // to confirm
+      chip->inInterrupt=false;
+      break;
+    default: {
+      // MSB 1
+
+      break;
+    }
   }
   printf("PC: %.4x instr: %.4x\n", chip->PC, inst);
 
   // advance RG1
   chip->lsfrBit= ((chip->RG1>>6) ^ (chip->RG1>>5))&1;
-  chip->RG1    =  (chip->RG1<<1) |  chip->lsfrBit;
+  chip->RG1    =  (chip->RG1<<1) | ~chip->lsfrBit;
+  // advance RG2
+  if (1) { // TODO: this condition
+    chip->lsfrBit=((chip->RG2>>2) ^ (chip->RG2>>1))&1;
+    chip->RG2    = (chip->RG2<<1) | ~chip->lsfrBit;
+  } else {
+    chip->lsfrBit=(chip->RG2>>0)&1;
+    chip->RG2    =(chip->RG2<<1) | ~chip->lsfrBit;
+  }
 }
 
 void UPD_FUNC_A(WritePort, uPD_Ports port, uint8_t value) {
