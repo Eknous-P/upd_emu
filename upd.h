@@ -8,17 +8,8 @@ extern "C" {
 
 #include <stdint.h>
 #include <string.h> // memset
-
+#include <stdbool.h>
 // types
-
-// eh i dont need stdbool
-#ifndef bool
-typedef uint8_t bool;
-enum boolStates {
-  false=0,
-  true=1
-};
-#endif
 
 typedef enum _uPD_Variants {
   uPD1771C,

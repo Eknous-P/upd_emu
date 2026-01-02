@@ -1,5 +1,4 @@
 #include "upd.h"
-#include <stdio.h>
 
 void triggerInterrupt(uPD177x* chip, uPD_Vectors vector) {
   if (!chip->inInterrupt) {
@@ -106,13 +105,56 @@ void UPD_FUNC(Tick) {
       chip->PC=chip->dataMem.memRegs.stack[chip->SP--]; // to confirm
       chip->inInterrupt=false;
       break;
+    // MSB 1
+    case 0x1405: // MOV A, (H)
+      chip->A=chip->H;
+      break;
+    case 0x1601: // MOV (H), A
+      chip->H=chip->A;
+      break;
+    case 0x1605: {// XCHG (H), A
+      uint8_t temp=chip->A;
+      chip->A=chip->H;
+      chip->H=temp;
+      break;
+    }
     default: {
-      // MSB 1
-
+      uint8_t r=(inst&0x1f0)>>4;
+      switch (inst&0xfe0f) {
+        case 0x1000: // MOV Y, Rr
+          chip->Y=chip->dataMem.memRegs.Rr[r];
+          break;
+        case 0x1005: // MOV A, Rr
+          chip->A=chip->dataMem.memRegs.Rr[r];
+          break;
+        case 0x100a: // MOV H, Rr
+          chip->H=chip->dataMem.memRegs.Rr[r];
+          break;
+        case 0x1201: // MOV Rr, A
+          chip->dataMem.memRegs.Rr[r]=chip->A;
+          break;
+        case 0x1202: // MOV Rr, H
+          chip->dataMem.memRegs.Rr[r]=chip->H;
+          break;
+        case 0x1205: { // XCHG Rr, A
+          uint8_t temp=chip->A;
+          chip->A=chip->dataMem.memRegs.Rr[r];
+          chip->dataMem.memRegs.Rr[r]=temp;
+          break;
+        }
+        case 0x120a: { // XCHG Rr, H
+          uint8_t temp=chip->H;
+          chip->H=chip->dataMem.memRegs.Rr[r];
+          chip->dataMem.memRegs.Rr[r]=temp;
+          break;
+        }
+        case 0x1409: // MIX Rr
+          // TODO: ???
+          break;
+      }
       break;
     }
   }
-  printf("PC: %.4x instr: %.4x\n", chip->PC, inst);
 
   // advance RG1
   chip->lsfrBit= ((chip->RG1>>6) ^ (chip->RG1>>5))&1;
@@ -145,7 +187,6 @@ uint8_t UPD_FUNC_A(GetPort, uPD_Ports port) {
       return chip->portA;
     case UPD_PORT_B:
       return chip->portB;
-      break;
     default: return 0;
   }
 }
