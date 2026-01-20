@@ -13,7 +13,6 @@ RAM:
 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
-
 */
 
 
@@ -27,7 +26,7 @@ void dumpData(const void* data, size_t len) {
 }
 
 void printuPD(uPD177x* chip) {
-  uint16_t dac16=chip->DAC;
+  uint16_t dac16=chip->DAC<<7;
   signed short dac=*(signed short*)&dac16;
   printf(
 "PC: %.4x | A: %.2x[%2.x] | X: %.2x Y: %.2x H: %.2x |\n"
@@ -38,7 +37,7 @@ void printuPD(uPD177x* chip) {
 chip->PC, chip->A, chip->A_, chip->X, chip->Y, chip->H,
 chip->MD, chip->MD0, chip->MD1, chip->SP,
 chip->RG1, chip->RG2, chip->skip, chip->skip_, chip->N,
-chip->portA, chip->portB, ((dac<0)?'-':' '),abs(dac)
+chip->portA, chip->portB, ((dac<0)?'-':' '),abs(dac)>>7
   );
   printf("\x1b[34m");
   dumpData(chip->dataMem.memRegs.Rr, 32);
@@ -120,7 +119,6 @@ outfile is a WAV audio file, will output [samples] samples of the DAC\n");
   fread(romData, 1, flen, rom);
   // and close
   fclose(rom);
-  // dumpData(romData, 1024);
 
   // initialise the emulator
   uPD177x upd;
@@ -136,7 +134,8 @@ outfile is a WAV audio file, will output [samples] samples of the DAC\n");
     printf("\x1b[2;1H");
     printuPD(&upd);
     if (out) {
-      uint16_t dac=upd.DAC;
+      uint16_t dac16=upd.DAC<<7;
+      signed short dac=*(signed short*)&dac16;
       fwrite(&dac, 2, 1, out);
     }
   }
