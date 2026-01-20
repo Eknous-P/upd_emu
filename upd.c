@@ -112,7 +112,7 @@ void UPD_FUNC(Tick) {
     case 0x1601: // MOV (H), A
       chip->H=chip->A;
       break;
-    case 0x1605: {// XCHG (H), A
+    case 0x1605: { // XCHG (H), A
       uint8_t temp=chip->A;
       chip->A=chip->H;
       chip->H=temp;
